@@ -2,7 +2,7 @@
 本次非容器部署是在NA-test3号机上进行的，其配置是：
 - 内存：8G
 ## 非容器部署服务列表
-[](repo/Blank Diagram.png)
+![](repo/Blank_Diagram.png)
 ## 1.软件环境部署
 ### 查看linux系统版本号：
 ```
