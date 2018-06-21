@@ -98,12 +98,14 @@ sudo yum -y install mysql-connector-python.noarch
 ## 5. 启动Info部署单元（Tomcat）
 `/home/centos/longsl/app/tomcat7/bin/catalina.sh run`     以监控模式打开tomcat
 `/home/centos/longsl/app/tomcat7/bin/startup.sh`          以后台模式打开tomcat
+
 如果tomcat正常开启，log中不会出现异常信息。记住：查看$TOMCAT_HOME/logs目录下的日志信息，各个web项目的日志都在这个目录下。
 如果出现DB相关的异常请检查mysql数据库连接，以及各个部署单元的配置文件等。
 
 停止Tomcat，需要使用`kill -9 $pid`命令。
 
-## 6.使用KP客户端连接Proxy服务器所在的外网IP，端口号为9000；防火墙开放9000端口
+## 6.开放端口
+使用KP客户端连接Proxy服务器所在的外网IP，端口号为9000；防火墙开放9000端口
 `sudo /sbin/iptables -I INPUT -p tcp --dport 9000 -j ACCEPT`
 
 ## 7.Nginx资源更新服务器部署
