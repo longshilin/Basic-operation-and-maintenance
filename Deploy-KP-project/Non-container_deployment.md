@@ -90,12 +90,20 @@ sudo yum -y install mysql-connector-python.noarch
 ### 还原数据库
 `mysql -uroot -p kpdb < /home/centos/longsl/kpdb.dump`
 
-## 4. 生成竞技场机器人和超神之路机器人
+## 4. 部署GameProxy
+
+## 5. 部署ChatProxy
+
+## 6. 部署GateWay
+
+## 7. 部署ProxyServer
+
+## 8. 生成竞技场机器人和超神之路机器人
 1. 在NA-DM机上`/usr/app/pythonTool`目录下获取机器人脚本。
 2. 部署脚本文件到本地机器，然后修改目录下的config文件。
 3. 通过`python main.python`来执行脚本。
 
-## 5. 启动Info部署单元（Tomcat）
+## 9. 启动Info部署单元（Tomcat）
 `/home/centos/longsl/app/tomcat7/bin/catalina.sh run`     以监控模式打开tomcat
 `/home/centos/longsl/app/tomcat7/bin/startup.sh`          以后台模式打开tomcat
 
@@ -104,14 +112,14 @@ sudo yum -y install mysql-connector-python.noarch
 
 停止Tomcat，需要使用`kill -9 $pid`命令。
 
-## 6.开放端口
+## 10.开放端口
 使用KP客户端连接Proxy服务器所在的外网IP，端口号为9000；防火墙开放9000端口
 `sudo /sbin/iptables -I INPUT -p tcp --dport 9000 -j ACCEPT`
 
-## 7.Nginx资源更新服务器部署
+## 11.Nginx资源更新服务器部署
 `sudo yum install -y nginx`
 
-## 8.测试
+## 12.测试
 通过Unity打开KP客户端程序进行测试
 
 注意事项：
