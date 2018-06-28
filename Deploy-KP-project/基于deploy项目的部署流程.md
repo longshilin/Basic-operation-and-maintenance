@@ -1,3 +1,4 @@
+# 基于deploy项目的部署流程
 1. 从aws-git上pull项目源码，aws-git地址：https://git-codecommit.us-east-1.amazonaws.com/v1/repos/yunying
 2. 通过eclipsIDE来导入项目源码
 3. 对于maven依赖的报错，需要删除本地仓库中的依赖包，然后更新pom.xml文件重新下载资源包
