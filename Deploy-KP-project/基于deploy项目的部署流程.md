@@ -28,13 +28,13 @@
 3. 开始进入正式配置
 
     1. 点击 开服向导->新增/维护全局服务 选择各个服务组件的版本，这个是通过线上的镜像仓库来获取的。最后点击保存，开始全局服务的创建。在创建全局服务时，后台会进行的有deploydb中，表关系的建立，其中涉及服务依赖的建立以及各服务端口号的建立。
-    + 修改的数据库表信息：deploydb中service_config service_db service_memecached service_redis service_TD表进行修改，涉及到这些服务的依赖配置
+      + 修改的数据库表信息：deploydb中service_config service_db service_memecached service_redis service_TD表进行修改，涉及到这些服务的依赖配置
 
     2. 点击 开服向导->渠道维护 这个界面配置的是 kpserverlistdb 中的channel_list表和server_list表，其中channel_list表是通过前台输入的，server_list表是手动配置进去的。除了配置serverlist相关属性外，还需要设置GameProxy、GameServer以及Third版本，这里设置成功后，在node机上就会自动建立所有的容器并启动。
-    + 修改的数据库表信息：deploydb中service_config service_db service_memecached service_redis service_TD表进行修改，涉及到这些服务的依赖配置。kpserverlistdb数据库中channel_list表的修改以及server_list的手动新增。
+      + 修改的数据库表信息：deploydb中service_config service_db service_memecached service_redis service_TD表进行修改，涉及到这些服务的依赖配置。kpserverlistdb数据库中channel_list表的修改以及server_list的手动新增。
 
     3. 点击 开服向导->开新服 进行服务器的搭建，其中包括proxy和KP两个服务组件，这就是一个游戏服的标准配置，在；开新服界面上，区服ID是根据在server_config表中进行插入的，其中会关联此服务器属于哪一个渠道号中等信息。最后设置proxy版本和kp版本号，点击保存即可开始proxy和kp服务组件容器的创建。其中在创建kp容器时，会先进行机器人插入，要保住玩家数据库中的USER机器人数量是10000时，才表示插入机器人成功，也才可以进行下一步操作。`SELECT COUNT(*) FROM `USER` WHERE USER.IS_ROBOT=1;`
-    + 修改的数据库表信息：deploydb中server_config service_config service_db service_memecached service_redis service_TD表进行修改，涉及到这些服务的依赖配置。
+      + 修改的数据库表信息：deploydb中server_config service_config service_db service_memecached service_redis service_TD表进行修改，涉及到这些服务的依赖配置。
 
 4. 补充信息：
 ** 当其中某一个操作出现错误时，需要将这个步骤中所涉及的表信息都回滚到之前的状态上。保证数据的健全性 **
