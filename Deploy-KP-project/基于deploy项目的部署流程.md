@@ -19,12 +19,14 @@
 首先需要解决deploy中，有两个地方需要连接线上服务的地方，因此需要将deploy所在主机的ip地址加入到线上请求机器的安全组中，才能获取到请求的信息，否则代码运行会报错 URL连接失败等。
 
 2. 通过开服向导进行整体部署（准备工作）:
+
   1. 首先在node机器上安装redis和mysql数据库。安装文档查看之前的整理。
   2. 在deploy数据库表中对这两个服务进行相应的依赖配置等。包括service_config和service_machine依赖关系进行配置
   3. 对deploy数据库表中的memcached服务进行相应配置，其IMAGE_TAG标签设为：1.4.15-9，并在Image表中设置其镜像的相应信息，手动增加memcached版本。这样在deploy前台真正启动之后，会自动根据image表中设置的资源地址进行下载镜像并进行安装
   4. 注意deploy数据库中的channel表是有增长序号的，设置一个序号 在deploy前台开渠道的时候会用上。
 
 3. 开始进入正式配置
+
   1. 点击 开服向导->新增/维护全局服务 选择各个服务组件的版本，这个是通过线上的镜像仓库来获取的。最后点击保存，开始全局服务的创建。在创建全局服务时，后台会进行的有deploydb中，表关系的建立，其中涉及服务依赖的建立以及各服务端口号的建立。
   + 修改的数据库表信息：deploydb中service_config service_db service_memecached service_redis service_TD表进行修改，涉及到这些服务的依赖配置
 
