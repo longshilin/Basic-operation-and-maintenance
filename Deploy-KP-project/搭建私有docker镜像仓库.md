@@ -26,19 +26,48 @@ Server:
 ```
 修改Docker的系统配置文件：
 ```
+cat /etc/sysconfig/docker
+
 # /etc/sysconfig/docker
 
 # Modify these options if you want to change the way the docker daemon runs
-OPTIONS='--selinux-enabled --insecure-registry localhost -H tcp://0.0.0.0:2375  -H unix:///var/run/docker.sock'
+OPTIONS='--selinux-enabled --insecure-registry ec2-18-216-245-132.us-east-2.compute.amazonaws.com -H tcp://0.0.0.0:2375  -H unix:///var/run/docker.sock'
+if [ -z "${DOCKER_CERT_PATH}" ]; then
+    DOCKER_CERT_PATH=/etc/docker
+fi
+
+# Do not add registries in this file anymore. Use /etc/containers/registries.conf
+# from the atomic-registries package.
+#
+
+# On an SELinux system, if you remove the --selinux-enabled option, you
+# also need to turn on the docker_transition_unconfined boolean.
+# setsebool -P docker_transition_unconfined 1
+
+# Location used for temporary files, such as those created by
+# docker load and build operations. Default is /var/lib/docker/tmp
+# Can be overriden by setting the following environment variable.
+# DOCKER_TMPDIR=/var/tmp
+
+# Controls the /etc/cron.daily/docker-logrotate cron job status.
+# To disable, uncomment the line below.
+# LOGROTATE=false
+
+# docker-latest daemon can be used by starting the docker-latest unitfile.
+# To use docker-latest client, uncomment below lines
+#DOCKERBINARY=/usr/bin/docker-latest
+#DOCKERDBINARY=/usr/bin/dockerd-latest
+#DOCKER_CONTAINERD_BINARY=/usr/bin/docker-containerd-latest
+#DOCKER_CONTAINERD_SHIM_BINARY=/usr/bin/docker-containerd-shim-latest
 ```
 
-修改centos的系统配置文件，将/etc/selinux/config文件中SELINUX=enforcing改为SELINUX=disabled，永久关闭SElinux状态，避免出现Docker挂载主机目录Docker访问出现Permission denied。
+修改centos的系统配置文件，将/etc/selinux/config文件中SELINUX=enforcing改为SELINUX=disabled，永久关闭SElinux状态，需重启机器才能生效，在不重启机器时可以通过命令`setenforce 0`临时关闭selinux。或者是在挂载目录上，通过命令`chcon -Rt svirt_sandbox_file_t /data`修改安全性文档避免出现Docker挂载主机目录Docker访问出现Permission denied。
 
-参考文档有：
-
-[1] [Docker挂载主机目录Docker访问出现Permission denied的解决办法](https://blog.csdn.net/rznice/article/details/52170085)
-
-[2] [关闭SELinux](http://blog.51cto.com/zhaodongwei/1745837)
+>参考文档有：
+>
+>[1] [Docker挂载主机目录Docker访问出现Permission denied的解决办法](https://blog.csdn.net/rznice/article/details/52170085)
+>
+>[2] [关闭SELinux](http://blog.51cto.com/zhaodongwei/1745837)
 
 # 安装Docker Registry
 目前Docker Registry已经升级到了v2，最新版的Docker已不再支持v1。Registry v2使用Go语言编写，在性能和安全性上做了很多优化，重新设计了镜像的存储格式。 先切换为root用户，再执行下面命令：
@@ -64,29 +93,28 @@ OPTIONS='--selinux-enabled --insecure-registry localhost -H tcp://0.0.0.0:2375  
 　　docker-compose.yml文件内容大致意思为: 基于“nginx:1.9” image运行nginx容器，暴露容器443端口到host 443端口。并挂载当前目录下的nginx/目录为容器的/etc/nginx/config.d目录。
 　　nginx link到registry容器。基于registry:2 image创建registry容器，将容器5000端口暴露到host 5000端口，使用环境变量指明使用/data为根目录，并将当前目录下data/文件夹挂载到容器的/data目录。
 ```
-nginx:  
-  image: "nginx:1.9"  
-  ports:  
-    - 443:443  
-  links:  
-    - registry:registry  
-  volumes:  
-    - ./nginx/:/etc/nginx/conf.d  
-registry:  
-  image: registry:2  
-  ports:  
-    - 127.0.0.1:5000:5000  
-  environment:  
-    REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /data  
-  volumes:  
-
-    - ./data:/data  
+nginx:
+  image: "nginx:1.9"
+  ports:
+    - 443:443
+  links:
+    - registry:registry
+  volumes:
+    - ./nginx/:/etc/nginx/conf.d
+registry:
+  image: registry:2.1.1
+  ports:
+    - 127.0.0.1:5000:5000
+  environment:
+    REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /data
+  volumes:
+    - ./data:/data
 ```
 
 ## 配置nginx
 
 在nginx目录中创建registry.conf文件配置nginx。配置nginx与registry的关系，转发端口，以及其他nginx的配置选项。复制，粘贴如下内容到你的registry.conf文件中：
-
+m
 ```
 # cat /data/programs/docker/nginx/registry.conf
 
@@ -96,32 +124,30 @@ upstream docker-registry {
 
 server {
   listen 443;
-  server_name myregistrydomain.com;
+  server_name ec2-18-216-245-132.us-east-2.compute.amazonaws.com;
 
   # SSL
-  # ssl on;
-  # ssl_certificate /etc/nginx/conf.d/domain.crt;
-  # ssl_certificate_key /etc/nginx/conf.d/domain.key;
-  # disable any limits to avoid HTTP 413 for large image uploads
+  ssl on;
+  ssl_certificate /etc/nginx/conf.d/domain.crt;
+  ssl_certificate_key /etc/nginx/conf.d/domain.key;
 
+  # disable any limits to avoid HTTP 413 for large image uploads
   client_max_body_size 0;
 
   # required to avoid HTTP 411: see Issue #1486 (https://github.com/docker/docker/issues/1486)
-
   chunked_transfer_encoding on;
-  location /v2/ {
 
+  location /v2/ {
     # Do not allow connections from docker 1.5 and earlier
     # docker pre-1.6.0 did not properly set the user agent on ping, catch "Go *" user agents
-
     if ($http_user_agent ~ "^(docker\/1\.(3|4|5(?!\.[0-9]-dev))|Go ).*$" ) {
       return 404;
     }
 
     # To add basic authentication to v2 use auth_basic setting plus add_header
-    # auth_basic "registry.localhost";
-    # auth_basic_user_file /etc/nginx/conf.d/registry.password;
-    # add_header 'Docker-Distribution-Api-Version' 'registry/2.0' always;
+    auth_basic "registry.localhost";
+    auth_basic_user_file /etc/nginx/conf.d/registry.password;
+    add_header 'Docker-Distribution-Api-Version' 'registry/2.0' always;
 
     proxy_pass                          http://docker-registry;
     proxy_set_header  Host              $http_host;   # required for docker client's sake
@@ -129,9 +155,31 @@ server {
     proxy_set_header  X-Forwarded-For   $proxy_add_x_forwarded_for;
     proxy_set_header  X-Forwarded-Proto $scheme;
     proxy_read_timeout                  900;
-
   }
+
 }
+```
+配置文件创建完成后，回到工作目录执行docker-compose up运行registry和nginx容器。
+```
+# docker-compose up
+Starting docker_registry_1
+Starting docker_nginx_1
+Attaching to docker_registry_1, docker_nginx_1
+registry_1 | time="2018-07-11T03:25:08Z" level=warning msg="No HTTP secret provided - generated random secret. This may cause problems with uploads if multiple registries are behind a load-balancer. To provide a shared secret, fill in http.secret in the configuration file or set the REGISTRY_HTTP_SECRET environment variable." instance.id=199b96f2-23a9-4c09-90f5-b96344fd5edc version=v2.1.1
+registry_1 | time="2018-07-11T03:25:08Z" level=info msg="redis not configured" instance.id=199b96f2-23a9-4c09-90f5-b96344fd5edc version=v2.1.1
+registry_1 | time="2018-07-11T03:25:08Z" level=info msg="using inmemory blob descriptor cache" instance.id=199b96f2-23a9-4c09-90f5-b96344fd5edc version=v2.1.1
+registry_1 | time="2018-07-11T03:25:08Z" level=info msg="listening on [::]:5000" instance.id=199b96f2-23a9-4c09-90f5-b96344fd5edc version=v2.1.1
+registry_1 | time="2018-07-11T03:25:08Z" level=info msg="Starting upload purge in 23m0s" instance.id=199b96f2-23a9-4c09-90f5-b96344fd5edc version=v2.1.1
+```
+执行docker-compose up后。注意是否有容器启动失败的消息，如果容器启动失败的消息，需要检查网络，是否能从dockerhub上pull image（需代理，或使用使用国内镜像，使用国内镜像需更改docker-compose.yml文件中image项）。也由可能粘贴配置文件错误，需仔细检查。
+
+启动后也可以使用docker ps命令查看是否两个容器都正常运行。ps:最好是进到容器内部去看挂载的文件是否可以被访问，另外通过`docekr logs $CONTAINER_NAME`来查看实时日志信息，以此保证启动的容器是正常运行的。
+```
+# docker ps
+
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                          NAMES
+3ee65749e976        nginx:1.9           "nginx -g 'daemon ..."   12 hours ago        Up 6 seconds        80/tcp, 0.0.0.0:443->443/tcp   docker_nginx_1
+05bed2b41e99        registry:2.1.1      "/bin/registry /et..."   12 hours ago        Up 6 seconds        127.0.0.1:5000->5000/tcp       docker_registry_1
 ```
 添加用户名和密码
 在/data/programs/docker/nginx目录下执行下面命令创建用户名和密码对，如果要创建多个用户名和密码对，则不是使用“-c“选项。
@@ -192,7 +240,7 @@ State or Province Name (full name) []:
 Locality Name (eg, city) [Default City]:
 Organization Name (eg, company) [Default Company Ltd]:
 Organizational Unit Name (eg, section) []:
-Common Name (eg, your name or your server's hostname) []:docker-registry.com
+Common Name (eg, your name or your server's hostname) []:ec2-18-216-245-132.us-east-2.compute.amazonaws.com
 Email Address []:
 Please enter the following 'extra' attributes
 to be sent with your certificate request
